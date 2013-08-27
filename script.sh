@@ -30,9 +30,11 @@ apt-get -y install foreman-compute
 
 echo include foreman_installer | puppet apply --modulepath /usr/share/foreman-installer -v
 
+#TODO these need to be persisted over reboots!
 /sbin/iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE
 /sbin/iptables --append FORWARD --in-interface eth1 -j ACCEPT
 
 sysctl net.ipv4.ip_forward=1
+sysctl -p
 
 iptables -t nat -L -v
