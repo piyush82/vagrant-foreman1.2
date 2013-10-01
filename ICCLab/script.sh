@@ -3,11 +3,16 @@
 # add foreman installer repo
 echo "deb http://deb.theforeman.org/ precise stable" > /etc/apt/sources.list.d/foreman.list
 wget -q http://deb.theforeman.org/foreman.asc -O- | apt-key add -
+
+#update and upgrade
 apt-get update 
 apt-get upgrade -y
 # apt-get dist-upgrade -y
+
+#install foreman
 apt-get install -y foreman-installer
 
+#setup the answers file - TODO modify to support another DHCP range (eth2)
 cat > /usr/share/foreman-installer/foreman_installer/answers.yaml << EOF
 foreman:
   authentication: false
@@ -32,33 +37,37 @@ foreman_proxy:
   dns_forwarders: ['8.8.8.8']
 EOF
 
-#cat >> /etc/resolvconf/resolv.conf.d/head << EOF
-#domain cloudcomp.ch
-#nameserver 8.8.8.8
-#EOF
-
+# run foreman installer
 echo include foreman_installer | puppet apply --modulepath /usr/share/foreman-installer -v
 
-echo "Now installing foreman-compute"
-
-apt-get -y install foreman-compute
-
 echo "Setting the Net forwarding rules now."
+# setup fowarding rules and on boot
+# eth0 is NAT'ed adapter and the outbound route, eth{1,2} are the internal network
+cat >> /etc/init.d/fwd-traff.sh << EOF
 /sbin/iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE
 /sbin/iptables --append FORWARD --in-interface eth1 -j ACCEPT
+/sbin/iptables --append FORWARD --in-interface eth2 -j ACCEPT
+EOF
+chmod a+x /etc/init.d/fwd-traff.sh
+ln -s /etc/init.d/fwd-traff.sh /etc/rc2.d/S96forwardtraffic
+
+# install the rules
+/etc/init.d/fwd-traff.sh
+
+# enable traffic fowarding
 sysctl net.ipv4.ip_forward=1
 sysctl -p
 
-echo "Installing git now."
+# install git
 apt-get install -y git
 
+# install puppet modules
 gem install puppet-module
 puppet module install puppetlabs/openstack
 
 #wget https://raw.github.com/theforeman/puppet-foreman/master/templates/foreman-report.rb.erb
 #mv foreman-report.rb.erb foreman.rb
 #mv foreman.rb /usr/lib/ruby/1.8/puppet/resolvports/
-
 #sed -i 's/(<)(%)(=)( )(@)foreman(_)url( )(%)(>)/foreman.cloudcomp.ch/g' /usr/lib/ruby/1.8/puppet/reports/foreman.rb
 
 #git clone https://github.com/dizz/icclab-puppet-openstack.git
@@ -82,6 +91,7 @@ grep -rl '=( )production' /etc/puppet/ | xargs sed -i '=( )production/=( )grizzl
 #nameserver 127.0.0.1
 #EOF
 
+# setup resolv.conf
 cat > /etc/resolv.conf << EOF
 nameserver 127.0.0.1
 search cloudcomp.ch
