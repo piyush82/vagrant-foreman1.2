@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# ensure latest version of puppet (3.X)
+wget http://apt.puppetlabs.com/puppetlabs-release-raring.deb
+dpkg -i puppetlabs-release-raring.deb
+
 # add foreman installer repo
 echo "deb http://deb.theforeman.org/ precise stable" > /etc/apt/sources.list.d/foreman.list
 wget -q http://deb.theforeman.org/foreman.asc -O- | apt-key add -
@@ -12,7 +16,9 @@ apt-get upgrade -y
 #install foreman
 apt-get install -y foreman-installer
 
-#setup the answers file - TODO modify to support another DHCP range (eth2)
+#setup the answers file - 
+# TODO modify to support another DHCP range (eth2)
+# TODO modify to setup puppet environments named as wanted
 cat > /usr/share/foreman-installer/foreman_installer/answers.yaml << EOF
 foreman:
   authentication: false
@@ -65,6 +71,11 @@ apt-get install -y git
 gem install puppet-module
 puppet module install puppetlabs/openstack
 
+# or
+# cd /etc/puppet/environments/development/modules
+# git clone https://github.com/stackforge/puppet-openstack.git -b stable/grizzly openstack
+# gem install librarian-puppet
+
 #wget https://raw.github.com/theforeman/puppet-foreman/master/templates/foreman-report.rb.erb
 #mv foreman-report.rb.erb foreman.rb
 #mv foreman.rb /usr/lib/ruby/1.8/puppet/resolvports/
@@ -80,16 +91,12 @@ cat >> /etc/puppet/puppet.conf << EOF
 EOF
 
 #this below will replace https to http in the foreman URL
-cd /etc/puppet/
-grep -rl 'https:' /etc/puppet/ | xargs sed -i 's/https:/http:/g'
+grep -rl 'https:' /etc/puppet/node.rb | xargs sed -i 's/https:/http:/g'
 
-echo "Modifying the default environment in puppet.conf"
-grep -rl '=( )production' /etc/puppet/ | xargs sed -i '=( )production/=( )grizzly/g'
-
-#grep -rl 'zhaw.ch' /etc/ | xargs sed -i 's/zhaw.ch/cloudcomp.ch/g'
-#cat > /etc/resolvconf/resolv.conf.d/original << EOF
-#nameserver 127.0.0.1
-#EOF
+cat > /etc/resolvconf/resolv.conf.d/head  << EOF
+nameserver 127.0.0.1
+search cloudcomp.ch
+EOF
 
 # setup resolv.conf
 cat > /etc/resolv.conf << EOF
@@ -104,6 +111,6 @@ sed -i 's/^START=no/START=yes/' /etc/default/foreman
 service foreman start
 
 #clean up apt
-apt-get autoremove
+apt-get -y autoremove
 
 echo "End of script."
