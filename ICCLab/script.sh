@@ -53,16 +53,15 @@ cat >> /etc/init.d/fwd-traff.sh << EOF
 /sbin/iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE
 /sbin/iptables --append FORWARD --in-interface eth1 -j ACCEPT
 /sbin/iptables --append FORWARD --in-interface eth2 -j ACCEPT
+# enable traffic fowarding
+sysctl net.ipv4.ip_forward=1
+sysctl -p
 EOF
 chmod a+x /etc/init.d/fwd-traff.sh
 ln -s /etc/init.d/fwd-traff.sh /etc/rc2.d/S96forwardtraffic
 
 # install the rules
 /etc/init.d/fwd-traff.sh
-
-# enable traffic fowarding
-sysctl net.ipv4.ip_forward=1
-sysctl -p
 
 # install git
 apt-get install -y git
@@ -95,13 +94,13 @@ grep -rl 'https:' /etc/puppet/node.rb | xargs sed -i 's/https:/http:/g'
 
 cat > /etc/resolvconf/resolv.conf.d/head  << EOF
 nameserver 127.0.0.1
-search cloudcomp.ch
+search cloudcomplab.dev
 EOF
 
 # setup resolv.conf
 cat > /etc/resolv.conf << EOF
 nameserver 127.0.0.1
-search cloudcomp.ch
+search cloudcomplab.dev
 EOF
 
 #enable the foreman service to run
