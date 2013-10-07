@@ -16,81 +16,42 @@ apt-get upgrade -y
 #install foreman
 apt-get install -y foreman-installer
 
-#setup the answers file - 
-# TODO modify to support another DHCP range (eth2)
-# TODO modify to setup puppet environments named as wanted
-cat > /usr/share/foreman-installer/foreman_installer/answers.yaml << EOF
-foreman:
-  authentication: false
-  ssl: false
-  organizations_enabled: false
-  locations_enabled: false
-puppet:
-  version: latest
-puppetmaster:
-  git_repo: false
-foreman_proxy:
-  tftp_servername: 192.168.56.2
-  dhcp: true
-  dhcp_interface: eth1
-  dhcp_gateway: 192.168.56.2
-  dhcp_range: 192.168.56.50 192.168.56.250
-  dhcp_nameservers: 192.168.56.2
-  dns: true
-  dns_interface: eth1
-  dns_reverse: 56.168.192.in-addr.arpa
-  dns_server: 127.0.0.1
-  dns_forwarders: ['8.8.8.8']
-EOF
-
-# run foreman installer
-echo include foreman_installer | puppet apply --modulepath /usr/share/foreman-installer -v
-
-echo "Setting the Net forwarding rules now."
-# setup fowarding rules and on boot
-# eth0 is NAT'ed adapter and the outbound route, eth{1,2} are the internal network
-cat >> /etc/init.d/fwd-traff.sh << EOF
-/sbin/iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE
-/sbin/iptables --append FORWARD --in-interface eth1 -j ACCEPT
-/sbin/iptables --append FORWARD --in-interface eth2 -j ACCEPT
-# enable traffic fowarding
-sysctl net.ipv4.ip_forward=1
-sysctl -p
-EOF
-chmod a+x /etc/init.d/fwd-traff.sh
-ln -s /etc/init.d/fwd-traff.sh /etc/rc2.d/S96forwardtraffic
-
-# install the rules
-/etc/init.d/fwd-traff.sh
-
 # install git
 apt-get install -y git
-
-# install puppet modules
+# install puppet module
 gem install puppet-module
+
+# setup the dhcp
+echo "Setting up DHCP params..."
+cp /tmp/files-to-go/proxydhcp.pp /usr/share/foreman-installer/foreman_proxy/manifests/proxydhcp.pp
+
+echo "Setting up Foreman params..."
+cp /tmp/files-to-go/answers.yaml /usr/share/foreman-installer/foreman_installer/answers.yaml
+
+#install apt-cache
+puppet module install markhellewell/aptcacherng --target-dir /usr/share/foreman-installer
+
+echo "Running foreman installer..."
+puppet apply --modulepath /usr/share/foreman-installer -v /tmp/files-to-go/install-fman.pp
+
+echo "Setting the Net forwarding rules now."
+cp /tmp/files-to-go/fwd-traff /etc/init.d/fwd-traff
+chmod a+x /etc/init.d/fwd-traff
+#set to run on boot
+ln -s /etc/init.d/fwd-traff /etc/rc2.d/S96forwardtraffic
+
+# install the rules
+/etc/init.d/fwd-traff
+
+#install common modules
+# puppet module install puppetlabs/apt --target-dir /etc/puppet/environments/common/modules
+puppet module install puppetlabs/ntp --target-dir /etc/puppet/environments/common/modules
+git clone http://github.com/joemiller/puppet-newrelic /etc/puppet/environments/common/modules/newrelic
+
+#install stable modules
 puppet module install puppetlabs/openstack
+git clone http://github.com/dizz/icclab-os /etc/puppet/environments/production/modules/icclab
 
-# or
-# cd /etc/puppet/environments/development/modules
-# git clone https://github.com/stackforge/puppet-openstack.git -b stable/grizzly openstack
-# gem install librarian-puppet
-
-#wget https://raw.github.com/theforeman/puppet-foreman/master/templates/foreman-report.rb.erb
-#mv foreman-report.rb.erb foreman.rb
-#mv foreman.rb /usr/lib/ruby/1.8/puppet/resolvports/
-#sed -i 's/(<)(%)(=)( )(@)foreman(_)url( )(%)(>)/foreman.cloudcomp.ch/g' /usr/lib/ruby/1.8/puppet/reports/foreman.rb
-
-#git clone https://github.com/dizz/icclab-puppet-openstack.git
-#cd icclab-puppet-openstack
-#./get_modules.sh
-
-cat >> /etc/puppet/puppet.conf << EOF
-[grizzly]
-    modulepath     = /home/vagrant/icclab-puppet-openstack/modules
-EOF
-
-#this below will replace https to http in the foreman URL
-grep -rl 'https:' /etc/puppet/node.rb | xargs sed -i 's/https:/http:/g'
 
 cat > /etc/resolvconf/resolv.conf.d/head  << EOF
 nameserver 127.0.0.1
@@ -112,4 +73,32 @@ service foreman start
 #clean up apt
 apt-get -y autoremove
 
-echo "End of script."
+# ================= Crud ===================
+
+#git clone https://github.com/dizz/foreman-installer.git -b 1.2-stable --recursive /usr/share/foreman-installer
+# git clone https://github.com/dizz/foreman-installer.git -b 1.2-stable /usr/share/foreman-installer
+# cd /usr/share/foreman-installer
+# git submodule update
+# ./update_submodules
+
+#this below will replace https to http in the foreman URL
+#grep -rl 'https:' /etc/puppet/node.rb | xargs sed -i 's/https:/http:/g'
+
+# or
+# cd /etc/puppet/environments/development/modules
+# git clone https://github.com/stackforge/puppet-openstack.git -b stable/grizzly openstack
+# gem install librarian-puppet
+
+#wget https://raw.github.com/theforeman/puppet-foreman/master/templates/foreman-report.rb.erb
+#mv foreman-report.rb.erb foreman.rb
+#mv foreman.rb /usr/lib/ruby/1.8/puppet/resolvports/
+#sed -i 's/(<)(%)(=)( )(@)foreman(_)url( )(%)(>)/foreman.cloudcomp.ch/g' /usr/lib/ruby/1.8/puppet/reports/foreman.rb
+
+#git clone https://github.com/dizz/icclab-puppet-openstack.git
+#cd icclab-puppet-openstack
+#./get_modules.sh
+
+#cat >> /etc/puppet/puppet.conf << EOF
+#[grizzly]
+#    modulepath     = /home/vagrant/icclab-puppet-openstack/modules
+#EOF
