@@ -44,7 +44,7 @@ ln -s /etc/init.d/fwd-traff /etc/rc2.d/S96forwardtraffic
 /etc/init.d/fwd-traff
 
 #install common modules
-puppet module install puppetlabs/apt --target-dir /etc/puppet/environments/common/modules
+# puppet module install puppetlabs/apt --target-dir /etc/puppet/environments/common/modules
 puppet module install puppetlabs/ntp --target-dir /etc/puppet/environments/common/modules
 git clone http://github.com/joemiller/puppet-newrelic /etc/puppet/environments/common/modules/newrelic
 
