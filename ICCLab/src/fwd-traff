@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# eth0 is NAT'ed adapter and the outbound route, eth{1,2} are the internal networks
+
+/sbin/iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE
+/sbin/iptables --append FORWARD --in-interface eth1 -j ACCEPT
+/sbin/iptables --append FORWARD --in-interface eth2 -j ACCEPT
+/sbin/iptables --append FORWARD --in-interface eth3 -j ACCEPT
+/sbin/iptables --append FORWARD --in-interface eth4 -j ACCEPT
+# enable traffic fowarding
+sysctl net.ipv4.ip_forward=1
+sysctl -p

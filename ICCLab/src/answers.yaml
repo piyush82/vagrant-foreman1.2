@@ -1,0 +1,21 @@
+foreman:
+  authentication: false
+  ssl: true
+  organizations_enabled: false
+  locations_enabled: false
+puppet:
+  version: latest
+puppetmaster:
+  git_repo: false
+foreman_proxy:
+  tftp_servername: 10.10.10.2
+  dhcp: true
+  dhcp_interface: eth1 #<- these values are now in the manifest
+  dhcp_gateway: 10.10.10.2
+  dhcp_range: 10.10.10.50 10.10.10.250
+  dhcp_nameservers: 10.10.10.2
+  dns: true
+  dns_interface: eth1
+  dns_reverse: 10.10.10.in-addr.arpa
+  dns_server: 127.0.0.1
+  dns_forwarders: ['8.8.8.8']
