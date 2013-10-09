@@ -67,6 +67,15 @@ EOF
 #enable the foreman service to run
 sed -i 's/^START=no/START=yes/' /etc/default/foreman
 
+#install host discovery
+apt-get install -y libsqlite3-dev squashfs-tools advancecomp
+echo "gem 'foreman_discovery', :git => \"https://github.com/theforeman/foreman_discovery.git\"" >> /usr/share/foreman/bundler.d/Gemfile.local.rb
+echo "gem 'sqlite'" >> /usr/share/foreman/bundler.d/Gemfile.local.rb
+cd /usr/share/foreman/
+rake discovery:build_image #takes time
+cp /usr/share/foreman/discovery_image/initrd.gz /var/lib/tftpboot/boot/disco-initrd.gz
+cp /usr/share/foreman/discovery_image/vmlinuz /var/lib/tftpboot/boot/disco-vmlinuz
+
 #start foreman
 service foreman start
 
