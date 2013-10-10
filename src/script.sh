@@ -52,7 +52,6 @@ git clone http://github.com/joemiller/puppet-newrelic /etc/puppet/environments/c
 puppet module install puppetlabs/openstack
 git clone http://github.com/dizz/icclab-os /etc/puppet/environments/production/modules/icclab
 
-
 cat > /etc/resolvconf/resolv.conf.d/head  << EOF
 nameserver 127.0.0.1
 search cloudcomplab.dev
@@ -70,11 +69,16 @@ sed -i 's/^START=no/START=yes/' /etc/default/foreman
 #install host discovery
 apt-get install -y libsqlite3-dev squashfs-tools advancecomp
 echo "gem 'foreman_discovery', :git => \"https://github.com/theforeman/foreman_discovery.git\"" >> /usr/share/foreman/bundler.d/Gemfile.local.rb
-echo "gem 'sqlite'" >> /usr/share/foreman/bundler.d/Gemfile.local.rb
+echo "gem 'sqlite3'" >> /usr/share/foreman/bundler.d/Gemfile.local.rb
+
 cd /usr/share/foreman/
+bundle update
 rake discovery:build_image #takes time
 cp /usr/share/foreman/discovery_image/initrd.gz /var/lib/tftpboot/boot/disco-initrd.gz
 cp /usr/share/foreman/discovery_image/vmlinuz /var/lib/tftpboot/boot/disco-vmlinuz
+
+# fix puppet common environment
+sed -i 's/\/etc\/puppet\/environments\/common/\/etc\/puppet\/environments\/common\/modules/' /etc/puppet/puppet.conf
 
 #start foreman
 service foreman start
