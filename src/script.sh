@@ -5,7 +5,7 @@ wget http://apt.puppetlabs.com/puppetlabs-release-raring.deb
 dpkg -i puppetlabs-release-raring.deb
 
 # add foreman installer repo
-echo "deb http://deb.theforeman.org/ precise stable" > /etc/apt/sources.list.d/foreman.list
+echo "deb http://deb.theforeman.org/ precise 1.2" > /etc/apt/sources.list.d/foreman.list
 wget -q http://deb.theforeman.org/foreman.asc -O- | apt-key add -
 
 #update and upgrade
