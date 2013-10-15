@@ -27,6 +27,8 @@ cp /tmp/files-to-go/proxydhcp.pp /usr/share/foreman-installer/foreman_proxy/mani
 
 echo "Setting up Foreman params..."
 cp /tmp/files-to-go/answers.yaml /usr/share/foreman-installer/foreman_installer/answers.yaml
+wget -O /usr/share/foreman-installer/foreman/templates/external_node.rb.erb https://raw.github.com/theforeman/puppet-foreman/master/templates/external_node_v2.rb.erb
+wget -O /usr/share/foreman-installer/foreman/templates/foreman-report.rb.erb https://raw.github.com/theforeman/puppet-foreman/master/templates/foreman-report_v2.rb.erb
 
 #install apt-cache
 puppet module install markhellewell/aptcacherng --target-dir /usr/share/foreman-installer
