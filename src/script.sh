@@ -46,12 +46,16 @@ ln -s /etc/init.d/fwd-traff /etc/rc2.d/S96forwardtraffic
 /etc/init.d/fwd-traff
 
 #install common modules
-# puppet module install puppetlabs/apt --target-dir /etc/puppet/environments/common/modules
 puppet module install puppetlabs/ntp --target-dir /etc/puppet/environments/common/modules
 git clone http://github.com/joemiller/puppet-newrelic /etc/puppet/environments/common/modules/newrelic
 
 #install stable modules
-puppet module install puppetlabs/openstack
+#puppet module install puppetlabs/openstack
+git clone https://github.com/stackforge/puppet-openstack -b stable/grizzly /etc/puppet/environments/production/modules/openstack
+cd /etc/puppet/environments/production/modules/openstack
+gem install librarian-puppet
+librarian-puppet install --verbose --path ../
+
 git clone http://github.com/dizz/icclab-os /etc/puppet/environments/production/modules/icclab
 
 cat > /etc/resolvconf/resolv.conf.d/head  << EOF
@@ -69,13 +73,15 @@ EOF
 sed -i 's/^START=no/START=yes/' /etc/default/foreman
 
 #install host discovery
+echo "Installing host discovery plugin"
 apt-get install -y libsqlite3-dev squashfs-tools advancecomp
 echo "gem 'foreman_discovery', :git => \"https://github.com/theforeman/foreman_discovery.git\"" >> /usr/share/foreman/bundler.d/Gemfile.local.rb
 echo "gem 'sqlite3'" >> /usr/share/foreman/bundler.d/Gemfile.local.rb
-
 cd /usr/share/foreman/
 bundle update
-rake discovery:build_image #takes time
+
+echo "Building discovery PXE boot image"
+rake discovery:build_image mode=prod #takes time
 cp /usr/share/foreman/discovery_image/initrd.gz /var/lib/tftpboot/boot/disco-initrd.gz
 cp /usr/share/foreman/discovery_image/vmlinuz /var/lib/tftpboot/boot/disco-vmlinuz
 
@@ -87,33 +93,3 @@ service foreman start
 
 #clean up apt
 apt-get -y autoremove
-
-# ================= Crud ===================
-
-#git clone https://github.com/dizz/foreman-installer.git -b 1.2-stable --recursive /usr/share/foreman-installer
-# git clone https://github.com/dizz/foreman-installer.git -b 1.2-stable /usr/share/foreman-installer
-# cd /usr/share/foreman-installer
-# git submodule update
-# ./update_submodules
-
-#this below will replace https to http in the foreman URL
-#grep -rl 'https:' /etc/puppet/node.rb | xargs sed -i 's/https:/http:/g'
-
-# or
-# cd /etc/puppet/environments/development/modules
-# git clone https://github.com/stackforge/puppet-openstack.git -b stable/grizzly openstack
-# gem install librarian-puppet
-
-#wget https://raw.github.com/theforeman/puppet-foreman/master/templates/foreman-report.rb.erb
-#mv foreman-report.rb.erb foreman.rb
-#mv foreman.rb /usr/lib/ruby/1.8/puppet/resolvports/
-#sed -i 's/(<)(%)(=)( )(@)foreman(_)url( )(%)(>)/foreman.cloudcomp.ch/g' /usr/lib/ruby/1.8/puppet/reports/foreman.rb
-
-#git clone https://github.com/dizz/icclab-puppet-openstack.git
-#cd icclab-puppet-openstack
-#./get_modules.sh
-
-#cat >> /etc/puppet/puppet.conf << EOF
-#[grizzly]
-#    modulepath     = /home/vagrant/icclab-puppet-openstack/modules
-#EOF
